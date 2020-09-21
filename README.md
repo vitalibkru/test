@@ -12,8 +12,8 @@
 Товары:
 Table Goods (можно расширять)
 ---------------------------------
-| GoodsId    |	bigint          |
-| GoodsName  |	nvarchar(100)   |
+ GoodsId    	bigint          
+ GoodsName  	nvarchar(100)   
 ---------------------------------
 +Ваши поля, если необходимо….
 
