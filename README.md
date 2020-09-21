@@ -14,7 +14,6 @@
 
 Товары:
 Table Goods (можно расширять)
----------------------------------
  GoodsId    	bigint          
  GoodsName  	nvarchar(100)   
 ---------------------------------
@@ -22,17 +21,15 @@ Table Goods (можно расширять)
 
 Склады: 
 Table Warehouse
----------------------------------
-| WarehouseId   |	Bigint        |
-| WarehouseName |	nvarchar(100) |
+ WarehouseId   	Bigint        
+ WarehouseName 	nvarchar(100) 
 ---------------------------------
 +Ваши поля, если необходимо….
 
 Места хранения на складе: 
 Table Place
------------------------------------------------
-| PlaceId     |	bigint                        |
-| WarehouseId |	bigint, foreign key, not Null |
+ PlaceId     	bigint                        
+ WarehouseId 	bigint, foreign key, not Null 
 -----------------------------------------------
 +Ваши поля, если необходимо….
 
