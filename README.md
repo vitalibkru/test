@@ -1,8 +1,5 @@
 # test
 тестовое задание
-
-# test
-тестовое задание
 Программист Delphi + MsSql
 Тестовое задание (Складской учёт) 
 
@@ -12,24 +9,24 @@
  СУБД MsSql Express – 2014; сторонние библиотеки, не входящие в RAD Studio не использовать)
 позволяющее вести простой складской количественно- суммовой учёт в разрезе партий и мест хранения на складах
 
-Товары:
+# Товары:
 Table Goods (можно расширять)
- GoodsId    	bigint          
- GoodsName  	nvarchar(100)   
+ [GoodsId]    	bigint          
+ [GoodsName]  	nvarchar(100)   
 ---------------------------------
 +Ваши поля, если необходимо….
 
-Склады: 
+#Склады: 
 Table Warehouse
- WarehouseId   	Bigint        
- WarehouseName 	nvarchar(100) 
+ [WarehouseId]   	Bigint        
+ [WarehouseName] 	nvarchar(100) 
 ---------------------------------
 +Ваши поля, если необходимо….
 
-Места хранения на складе: 
+#Места хранения на складе: 
 Table Place
- PlaceId     	bigint                        
- WarehouseId 	bigint, foreign key, not Null 
+ [PlaceId]     	bigint                        
+ [WarehouseId] 	bigint, foreign key, not Null 
 -----------------------------------------------
 +Ваши поля, если необходимо….
 
