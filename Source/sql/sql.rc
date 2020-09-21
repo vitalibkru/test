@@ -1,0 +1,9 @@
+sql_insert_data CUSTOM insert_data.sql
+sql_create_proc CUSTOM create_proc.sql
+sql_create_db CUSTOM create_db.sql
+sql_create_goods CUSTOM create_goods.sql
+sql_create_shipment CUSTOM create_shipment.sql
+sql_create_place CUSTOM create_place.sql
+sql_create_warehouse CUSTOM create_warehouse.sql
+sql_create_doc CUSTOM create_doc.sql
+sql_create_doclink CUSTOM create_doclink.sql
