@@ -345,15 +345,15 @@ sql := TStringList.Create;
 try
   dbname := Trim(Conf.Values['Database\Name']);
   if dbname<>'' then begin
-    Result := 1;
+    Inc(Result);
     if conn.Connect(Conf, 'master') then begin
-      Result := 2;
+      Inc(Result);
       LoadResource(sql, 'sql_create_db');
       dbnew := conn.CreateDatabase(dbname, sql);
       if dbnew>=0 then begin
-        Result := 3;
+        Inc(Result);
         if conn.Connect(Conf) then begin
-          Result := 4;
+          Inc(Result);
           j := 0;
           while j<Length(ctables) do begin
             LoadResource(sql, Format('sql_create_%s', [ctables[j]]));
@@ -364,7 +364,7 @@ try
             Inc(j);
           end;
           if j=Length(ctables) then begin
-            Result := 5;
+            Inc(Result);
             if dbnew>0 then begin
               LoadResource(sql, 'sql_create_proc');
               conn.Execute(sql);

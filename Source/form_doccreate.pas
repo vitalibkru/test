@@ -277,8 +277,13 @@ end;
 
 procedure Tfrm_doccreate.act_doc_createExecute(Sender: TObject);
 begin
-DoExecute(DoOnProgress, DoOnComplite);
-Close;
+  if DocCount>0 then begin
+    DoExecute(DoOnProgress, DoOnComplite);
+    Close;
+  end
+  else begin
+    MessageBox('Отсутствует товар', MB_ICONINFORMATION + MB_OK);
+  end;
 end;
 
 procedure Tfrm_doccreate.DoOnProgress(const Progress: double);

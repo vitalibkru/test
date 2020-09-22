@@ -52,13 +52,8 @@ end;
 
 procedure Tfrm_doc_arrival.act_doc_createExecute(Sender: TObject);
 begin
-if (get_key_dict(fld_warehouse)>0) and (get_key_dict(fld_shipment)>0) then begin
-  if DocCount>0 then begin
-    inherited act_doc_createExecute(Sender);
-  end
-  else begin
-    MessageBox('Отсутствует товар', MB_ICONINFORMATION + MB_OK);
-  end;
+if (get_key_dict(fld_warehouse)>0) and (Trim(fld_shipment.Text)<>'') then begin
+  inherited act_doc_createExecute(Sender);
 end
 else begin
   MessageBox('Необходимо указать склад и партию товара', MB_ICONINFORMATION + MB_OK);
