@@ -2,14 +2,10 @@ unit form_dm;
 
 interface
 
-uses
-  System.SysUtils, System.Classes, FireDAC.Stan.Intf, FireDAC.Stan.Option,
-  FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf, FireDAC.Stan.Def,
-  FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Phys.MySQL,
-  FireDAC.Phys.MySQLDef, FireDAC.VCLUI.Wait, FireDAC.Stan.Param, FireDAC.DatS,
-  FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.VCLUI.Login, FireDAC.Comp.UI,
-  Data.DB, FireDAC.Comp.DataSet, FireDAC.Comp.Client, FireDAC.Phys.MSSQLDef,
-  FireDAC.Phys.ODBCBase, FireDAC.Phys.MSSQL, strtools, docparam;
+uses System.SysUtils, System.Classes, FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf,
+  FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Phys.MySQL, FireDAC.Phys.MySQLDef, FireDAC.VCLUI.Wait,
+  FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.VCLUI.Login, FireDAC.Comp.UI, Data.DB, FireDAC.Comp.DataSet,
+  FireDAC.Comp.Client, FireDAC.Phys.MSSQLDef, FireDAC.Phys.ODBCBase, FireDAC.Phys.MSSQL, strtools, docparam;
 
 type
   TFDM = class(TDataModule)
@@ -142,15 +138,15 @@ type
     property OnChangeState: TNotifyEvent read FOnChangeState write FOnChangeState;
     procedure QueryDictionary(const DictName: string; DictData: TStrings; const Where: string);
   public
-    function find_value(ATableName,AKeyName: string; AWhere: string): Cardinal;
-    function find_value2(ATableName: string; ValueId,ValueName: string): Cardinal;
+    function find_value(ATableName, AKeyName: string; AWhere: string): Cardinal;
+    function find_value2(ATableName: string; ValueId, ValueName: string): Cardinal;
     function select_place(WarehouseId: Cardinal; Like: string): Cardinal;
     function insert_shipment(ShipmentName: string): Cardinal;
-    function insert_shipment2(ShipmentId,ShipmentName: string): Cardinal;
+    function insert_shipment2(ShipmentId, ShipmentName: string): Cardinal;
     function insert_doc(DocType: Cardinal; DocName: string; DocDate: TDateTime; DocShipment, DocWarehouse, DocPlace: Cardinal): Cardinal;
-    function insert_goods(GoodsArticle: string; Values: TStrings): Cardinal;
-    function insert_doclink(ADocId,AGoodsId: Cardinal; ACount: integer): Cardinal;
-    function find_leftovers(ADate: TDateTime; AGoods: TGoods): Integer;
+    function insert_goods(GoodsArticle: string; AGoods: TGoods): Cardinal;
+    function insert_doclink(ADocId, AGoodsId: Cardinal; ACount: integer): Cardinal;
+    function find_leftovers(ADate: TDateTime; AGoods: TGoods): integer;
   end;
 
 var
@@ -159,353 +155,418 @@ var
 implementation
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
-
 {$R *.dfm}
-
-//TFDM
+// TFDM
 
 function TFDM.GetConnected: boolean;
 begin
-Result := FDConnection.Connected;
+  Result := FDConnection.Connected;
 end;
 
 procedure TFDM.Connect;
 begin
-if not Connected then
-if CheckConnectionParams then begin
-  try
-    FDConnection.Connected := true;
-  except
+  if not Connected then
+    if CheckConnectionParams then
+      begin
+        try
+          FDConnection.Connected := true;
+        except
 
-  end;
-end;
+        end;
+      end;
 end;
 
 procedure TFDM.Disconnect;
 begin
-if Connected then begin
-  FDConnection.Connected := false;
-end;
+  if Connected then
+    begin
+      FDConnection.Connected := false;
+    end;
 end;
 
 procedure TFDM.SetConnectionParam(const ParamName: string; const Value: string);
 begin
-if Value<>'' then begin
-  FDConnection.Params.Values[ParamName] := Value;
-end;
+  if Value <> '' then
+    begin
+      FDConnection.Params.Values[ParamName] := Value;
+    end;
 end;
 
 function TFDM.CheckConnectionParams: boolean;
 begin
-Result := False;
-if Trim(FDConnection.Params.Values['Server'])<>'' then;
-if Trim(FDConnection.Params.Values['Database'])<>'' then;
-if Trim(FDConnection.Params.Values['User_Name'])<>'' then;
-if Trim(FDConnection.Params.Values['Password'])<>'' then begin
-  Result := True;
-end;
+  Result := false;
+  if Trim(FDConnection.Params.Values['Server']) <> '' then;
+  if Trim(FDConnection.Params.Values['Database']) <> '' then;
+  if Trim(FDConnection.Params.Values['User_Name']) <> '' then;
+  if Trim(FDConnection.Params.Values['Password']) <> '' then
+    begin
+      Result := true;
+    end;
 end;
 
 procedure TFDM.SetConnectionParams(Sender: TObject);
-var conn: boolean;
+var
+  conn: boolean;
 begin
-conn := Connected;
-Disconnect;
-with TStrings(Sender) do begin
-  SetConnectionParam('Server', Trim(Values['Database\Server']));
-  SetConnectionParam('Database', Trim(Values['Database\Name']));
-  SetConnectionParam('User_Name', Trim(Values['Database\Account']));
-  SetConnectionParam('Password', Trim(Values['Database\Password']));
-end;
-if conn then begin
-  Connect;
-end;
+  conn := Connected;
+  Disconnect;
+  with TStrings(Sender) do
+    begin
+      SetConnectionParam('Server', Trim(Values['Database\Server']));
+      SetConnectionParam('Database', Trim(Values['Database\Name']));
+      SetConnectionParam('User_Name', Trim(Values['Database\Account']));
+      SetConnectionParam('Password', Trim(Values['Database\Password']));
+    end;
+  if conn then
+    begin
+      Connect;
+    end;
 end;
 
 procedure TFDM.GetConnectionParams(Sender: TObject);
 begin
-with TStrings(Sender) do begin
-  Values['Database\Server'] := FDConnection.Params.Values['Server'];
-  Values['Database\Name'] := FDConnection.Params.Values['Database'];
-  Values['Database\Account'] := FDConnection.Params.Values['User_Name'];
-  Values['Database\Password'] := FDConnection.Params.Values['Password'];
-end;
+  with TStrings(Sender) do
+    begin
+      Values['Database\Server'] := FDConnection.Params.Values['Server'];
+      Values['Database\Name'] := FDConnection.Params.Values['Database'];
+      Values['Database\Account'] := FDConnection.Params.Values['User_Name'];
+      Values['Database\Password'] := FDConnection.Params.Values['Password'];
+    end;
 end;
 
 procedure TFDM.FDConnectionChangeState(Sender: TObject);
 begin
-if Assigned(FOnChangeState) then FOnChangeState(Self);
+  if Assigned(FOnChangeState) then
+    FOnChangeState(Self);
 end;
 
 procedure TFDM.FDQuery_findleftoversAfterClose(DataSet: TDataSet);
 begin
-FDQuery_findleftovers_place.Close;
-FDQuery_findleftovers_warehouse.Close;
-FDQuery_findleftovers_shipment.Close;
-FDQuery_findleftovers_goods.Close;
+  FDQuery_findleftovers_place.Close;
+  FDQuery_findleftovers_warehouse.Close;
+  FDQuery_findleftovers_shipment.Close;
+  FDQuery_findleftovers_goods.Close;
 end;
 
 procedure TFDM.FDQuery_findleftoversBeforeOpen(DataSet: TDataSet);
 begin
-FDQuery_findleftovers_place.Open;
-FDQuery_findleftovers_warehouse.Open;
-FDQuery_findleftovers_shipment.Open;
-FDQuery_findleftovers_goods.Open;
+  FDQuery_findleftovers_place.Open;
+  FDQuery_findleftovers_warehouse.Open;
+  FDQuery_findleftovers_shipment.Open;
+  FDQuery_findleftovers_goods.Open;
 end;
 
 procedure TFDM.FDTable_DocAfterClose(DataSet: TDataSet);
 begin
-FDQuery_DocType.Close;
-FDQuery_DocPlace.Close;
-FDQuery_DocShipment.Close;
-FDQuery_DocWarehouse.Close;
+  FDQuery_DocType.Close;
+  FDQuery_DocPlace.Close;
+  FDQuery_DocShipment.Close;
+  FDQuery_DocWarehouse.Close;
 end;
 
 procedure TFDM.FDTable_DocBeforeOpen(DataSet: TDataSet);
 begin
-FDQuery_DocType.Open;
-FDQuery_DocPlace.Open;
-FDQuery_DocShipment.Open;
-FDQuery_DocWarehouse.Open;
+  FDQuery_DocType.Open;
+  FDQuery_DocPlace.Open;
+  FDQuery_DocShipment.Open;
+  FDQuery_DocWarehouse.Open;
 end;
 
 procedure TFDM.FDTable_DocLinkAfterClose(DataSet: TDataSet);
 begin
-FDQuery_DocLinkGoods.Close;
-FDQuery_DocLinkDoc.Close;
-FDQuery_DocLinkShipment.Close;
-FDQuery_DocLinkDocType.Close;
-FDQuery_DocLinkWarehouse.Close;
-FDQuery_DocLinkPlace.Close;
+  FDQuery_DocLinkGoods.Close;
+  FDQuery_DocLinkDoc.Close;
+  FDQuery_DocLinkShipment.Close;
+  FDQuery_DocLinkDocType.Close;
+  FDQuery_DocLinkWarehouse.Close;
+  FDQuery_DocLinkPlace.Close;
 end;
 
 procedure TFDM.FDTable_DocLinkBeforeOpen(DataSet: TDataSet);
 begin
-FDQuery_DocLinkGoods.Open;
-FDQuery_DocLinkDoc.Open;
-FDQuery_DocLinkShipment.Open;
-FDQuery_DocLinkDocType.Open;
-FDQuery_DocLinkWarehouse.Open;
-FDQuery_DocLinkPlace.Open;
+  FDQuery_DocLinkGoods.Open;
+  FDQuery_DocLinkDoc.Open;
+  FDQuery_DocLinkShipment.Open;
+  FDQuery_DocLinkDocType.Open;
+  FDQuery_DocLinkWarehouse.Open;
+  FDQuery_DocLinkPlace.Open;
 end;
 
 procedure TFDM.FDTable_PlaceAfterClose(DataSet: TDataSet);
 begin
-FDQuery_PlaceWarehouse.Close;
+  FDQuery_PlaceWarehouse.Close;
 end;
 
 procedure TFDM.FDTable_PlaceBeforeOpen(DataSet: TDataSet);
 begin
-FDQuery_PlaceWarehouse.Open;
+  FDQuery_PlaceWarehouse.Open;
 end;
 
 procedure TFDM.QueryDictionary(const DictName: string; DictData: TStrings; const Where: string);
-var q: TFDQuery;
+var
+  q: TFDQuery;
   lkey: Cardinal;
   lname: string;
 begin
-DictData.Clear;
-DictData.AddObject('', TObject(0));
-if not Connected then exit;
-q := TFDQuery.Create(Self);
-try
-  q.Connection := FDConnection;
-  q.SQL.Add(Format('select top(1000) %sId, %sName from %s', [DictName, DictName, DictName]));
-  if Where<>'' then q.SQL.Add('where ('+Where+')');
-  q.SQL.Add(Format('order by %sName', [DictName]));
-  q.Open;
-  while not q.Eof do begin
-    lkey := q.Fields[0].AsLargeInt;
-    lname := Trim(q.Fields[1].AsString);
-    if lname<>'' then begin
-      DictData.AddObject(lname, TObject(lkey));
-    end;
-    q.Next;
+  DictData.Clear;
+  DictData.AddObject('', TObject(0));
+  if not Connected then
+    exit;
+  q := TFDQuery.Create(Self);
+  try
+    q.Connection := FDConnection;
+    q.SQL.Add(Format('select top(1000) %sId, %sName from %s', [DictName, DictName, DictName]));
+    if Where <> '' then
+      q.SQL.Add('where (' + Where + ')');
+    q.SQL.Add(Format('order by %sName', [DictName]));
+    q.Open;
+    while not q.Eof do
+      begin
+        lkey := q.Fields[0].AsLargeInt;
+        lname := Trim(q.Fields[1].AsString);
+        if lname <> '' then
+          begin
+            DictData.AddObject(lname, TObject(lkey));
+          end;
+        q.Next;
+      end;
+  finally
+    q.Free;
   end;
-finally
-  q.Free;
-end;
 end;
 
-function TFDM.find_value(ATableName,AKeyName: string; AWhere: string): Cardinal;
-var q: TFDQuery;
+function TFDM.find_value(ATableName, AKeyName: string; AWhere: string): Cardinal;
+var
+  q: TFDQuery;
 begin
-Result := 0;
-if not Connected then exit;
-q := TFDQuery.Create(Self);
-try
-  q.Connection := FDConnection;
-  q.SQL.Add(Format('select top(1) [%s] from [%s]', [AKeyName,ATableName]));
-  q.SQL.Add(Format('where (%s)', [AWhere]));
-  q.Open;
-  Result := q.Fields[0].AsLargeInt;
-finally
-  q.Free;
-end;
+  Result := 0;
+  if not Connected then
+    exit;
+  q := TFDQuery.Create(Self);
+  try
+    q.Connection := FDConnection;
+    q.SQL.Add(Format('select top(1) [%s] from [%s]', [AKeyName, ATableName]));
+    q.SQL.Add(Format('where (%s)', [AWhere]));
+    q.Open;
+    Result := q.Fields[0].AsLargeInt;
+  finally
+    q.Free;
+  end;
 end;
 
-function TFDM.find_value2(ATableName: string; ValueId,ValueName: string): Cardinal;
+function TFDM.find_value2(ATableName: string; ValueId, ValueName: string): Cardinal;
 begin
-Result := str2uint(ValueId);
-if Result>0 then begin
-  Result := find_value(ATableName,ATableName+'Id', Format('(%sId = %d)', [ATableName,Result]));
-end;
-if (Result=0) and (ValueName<>'') then begin
-  Result := find_value(ATableName,ATableName+'Id', Format('(%sName = ''%s'')', [ATableName,ValueName]));
-end;
+  Result := str2uint(ValueId);
+  if Result > 0 then
+    begin
+      Result := find_value(ATableName, ATableName + 'Id', Format('(%sId = %d)', [ATableName, Result]));
+    end;
+  if (Result = 0) and (ValueName <> '') then
+    begin
+      Result := find_value(ATableName, ATableName + 'Id', Format('(%sName = ''%s'')', [ATableName, ValueName]));
+    end;
 end;
 
 function TFDM.select_place(WarehouseId: Cardinal; Like: string): Cardinal;
 begin
-Result := 0;
-if WarehouseId>0 then begin
-  if Like<>'' then Result := find_value('Place', 'PlaceId', Format('((WarehouseId = %d) AND (PlaceName like ''%%%s%%''))', [WarehouseId, Like]));
-  if Result=0 then Result := find_value('Place', 'PlaceId', Format('(WarehouseId = %d)', [WarehouseId]));
-end;
+  Result := 0;
+  if WarehouseId > 0 then
+    begin
+      if Like <> '' then
+        Result := find_value('Place', 'PlaceId', Format('((WarehouseId = %d) AND (PlaceName like ''%%%s%%''))', [WarehouseId, Like]));
+      if Result = 0 then
+        Result := find_value('Place', 'PlaceId', Format('(WarehouseId = %d)', [WarehouseId]));
+    end;
 end;
 
 function TFDM.insert_shipment(ShipmentName: string): Cardinal;
-var conn: boolean;
+var
+  conn: boolean;
 begin
-Result := 0;
-if not Connected then exit;
-ShipmentName := copy(Trim(ShipmentName), 1, FDTable_Doc.FieldByName('ShipmentName').Size);
-if ShipmentName<>'' then begin
-  Result := find_value('Shipment','ShipmentId', Format('(ShipmentName = ''%s'')', [ShipmentName]));
-  if Result>0 then exit;
-  conn := FDTable_Shipment.Active;
-  if not conn then FDTable_Shipment.Open;
-  FDTable_Shipment.Insert;
-  FDTable_Shipment.FieldByName('ShipmentName').AsString := ShipmentName;
-  FDTable_Shipment.Post;
-  Result := FDTable_Shipment.FieldByName('ShipmentId').AsLargeInt;
-  if not conn then FDTable_Shipment.Close;
-end;
+  Result := 0;
+  if not Connected then
+    exit;
+  ShipmentName := copy(Trim(ShipmentName), 1, FDTable_Doc.FieldByName('ShipmentName').Size);
+  if ShipmentName <> '' then
+    begin
+      Result := find_value('Shipment', 'ShipmentId', Format('(ShipmentName = ''%s'')', [ShipmentName]));
+      if Result > 0 then
+        exit;
+      conn := FDTable_Shipment.Active;
+      if not conn then
+        FDTable_Shipment.Open;
+      FDTable_Shipment.Insert;
+      FDTable_Shipment.FieldByName('ShipmentName').AsString := ShipmentName;
+      FDTable_Shipment.Post;
+      Result := FDTable_Shipment.FieldByName('ShipmentId').AsLargeInt;
+      if not conn then
+        FDTable_Shipment.Close;
+    end;
 end;
 
-function TFDM.insert_shipment2(ShipmentId,ShipmentName: string): Cardinal;
+function TFDM.insert_shipment2(ShipmentId, ShipmentName: string): Cardinal;
 begin
-Result := str2uint(ShipmentId);
-if Result>0 then begin
-  Result := find_value('Shipment','ShipmentId', Format('(ShipmentId = %d)', [Result]));
-end;
-if (Result=0) and (ShipmentName<>'') then begin
-  Result := insert_shipment(ShipmentName);
-end;
+  Result := str2uint(ShipmentId);
+  if Result > 0 then
+    begin
+      Result := find_value('Shipment', 'ShipmentId', Format('(ShipmentId = %d)', [Result]));
+    end;
+  if (Result = 0) and (ShipmentName <> '') then
+    begin
+      Result := insert_shipment(ShipmentName);
+    end;
 end;
 
 function TFDM.insert_doc(DocType: Cardinal; DocName: string; DocDate: TDateTime; DocShipment, DocWarehouse, DocPlace: Cardinal): Cardinal;
-var conn: boolean;
+var
+  conn: boolean;
   lwhere: string;
 begin
-Result := 0;
-if not Connected then exit;
-if DocDate<4000 then DocDate := Now();
-DocName := copy(Trim(DocName), 1, FDTable_Doc.FieldByName('DocName').Size);
-if (DocName<>'') and (DocDate>4000) then begin
-  lwhere := Format('(DocType = %d) AND (DocName = ''%s'')', [DocType, DocName]);
-  if DocDate>4000 then lwhere := Format('%s AND (convert(varchar, isnull(DocDate,''''),102) = ''%s'')', [lwhere, datetime2str(DocDate, 'yyyy.mm.dd')]);
-  if DocShipment>0 then lwhere := Format('%s AND (ShipmentId = %d)', [lwhere, DocShipment]);
-  if DocWarehouse>0 then lwhere := Format('%s AND (WarehouseId = %d)', [lwhere, DocWarehouse]);
-  if DocPlace>0 then lwhere := Format('%s AND (PlaceId = %d)', [lwhere, DocPlace]);
-  Result := find_value('Doc','DocId', lwhere);
-  if Result>0 then exit;
-  conn := FDTable_Doc.Active;
-  if not conn then FDTable_Doc.Open;
-  FDTable_Doc.Insert;
-  FDTable_Doc.FieldByName('DocType').AsInteger := DocType;
-  FDTable_Doc.FieldByName('DocName').AsString := DocName;
-  if DocDate>4000 then FDTable_Doc.FieldByName('DocDate').AsDateTime := DocDate;
-  if DocShipment>0 then FDTable_Doc.FieldByName('ShipmentId').AsLargeInt := DocShipment;
-  if DocWarehouse>0 then FDTable_Doc.FieldByName('WarehouseId').AsLargeInt := DocPlace;
-  if DocPlace>0 then FDTable_Doc.FieldByName('PlaceId').AsLargeInt := DocPlace;
-  FDTable_Doc.Post;
-  Result := FDTable_Doc.FieldByName('DocId').AsLargeInt;
-  if not conn then FDTable_Doc.Close;
-end;
-end;
-
-function TFDM.insert_goods(GoodsArticle: string; Values: TStrings): Cardinal;
-var conn: boolean;
-  lwhere,GoodsName: string;
-begin
-Result := 0;
-if not Connected then exit;
-lwhere := str2digits(Values.Values['GoodsId']);
-if (lwhere<>'') then begin
-  Result := find_value('Goods','GoodsId', Format('(GoodsId = %s)', [lwhere]));
-  if Result>0 then exit;
-end;
-GoodsName := copy(Trim(Values.Values['GoodsName']), 1, FDTable_Goods.FieldByName('GoodsName').Size);
-GoodsArticle := copy(Trim(GoodsArticle), 1, FDTable_Goods.FieldByName('GoodsArticle').Size);
-lwhere := '';
-if GoodsArticle<>'' then lwhere := Format('(GoodsArticle = ''%s'')', [GoodsArticle]);
-if GoodsName<>'' then begin
-  if lwhere='' then lwhere := Format('(GoodsName = ''%s'')', [GoodsName])
-  else lwhere := Format('%s AND (GoodsName = ''%s'')', [lwhere,GoodsName]);
-end;
-if (lwhere<>'') then begin
-  Result := find_value('Goods','GoodsId', lwhere);
-  if Result>0 then exit;
-end;
-if (GoodsArticle<>'') or (GoodsName<>'') then begin
-  conn := FDTable_Goods.Active;
-  if not conn then FDTable_Goods.Open;
-  FDTable_Goods.Insert;
-  if GoodsArticle<>'' then FDTable_Goods.FieldByName('GoodsArticle').AsString := GoodsArticle;
-  if GoodsArticle<>'' then FDTable_Goods.FieldByName('GoodsName').AsString := GoodsName;
-  FDTable_Goods.FieldByName('GoodsCost').AsFloat := str2float(Values.Values['GoodsCost']);
-  FDTable_Goods.FieldByName('GoodsSize').AsFloat := str2float(Values.Values['GoodsSize']);
-  FDTable_Goods.Post;
-  Result := FDTable_Goods.FieldByName('GoodsId').AsLargeInt;
-  if not conn then FDTable_Goods.Close;
-end;
+  Result := 0;
+  if not Connected then
+    exit;
+  if DocDate < 4000 then
+    DocDate := Now();
+  DocName := copy(Trim(DocName), 1, FDTable_Doc.FieldByName('DocName').Size);
+  if (DocName <> '') and (DocDate > 4000) then
+    begin
+      lwhere := Format('(DocType = %d) AND (DocName = ''%s'')', [DocType, DocName]);
+      if DocDate > 4000 then
+        lwhere := Format('%s AND (convert(varchar, isnull(DocDate,''''),102) = ''%s'')', [lwhere, datetime2str(DocDate, 'yyyy.mm.dd')]);
+      if DocShipment > 0 then
+        lwhere := Format('%s AND (ShipmentId = %d)', [lwhere, DocShipment]);
+      if DocWarehouse > 0 then
+        lwhere := Format('%s AND (WarehouseId = %d)', [lwhere, DocWarehouse]);
+      if DocPlace > 0 then
+        lwhere := Format('%s AND (PlaceId = %d)', [lwhere, DocPlace]);
+      Result := find_value('Doc', 'DocId', lwhere);
+      if Result > 0 then
+        exit;
+      conn := FDTable_Doc.Active;
+      if not conn then
+        FDTable_Doc.Open;
+      FDTable_Doc.Insert;
+      FDTable_Doc.FieldByName('DocType').AsInteger := DocType;
+      FDTable_Doc.FieldByName('DocName').AsString := DocName;
+      if DocDate > 4000 then
+        FDTable_Doc.FieldByName('DocDate').AsDateTime := DocDate;
+      if DocShipment > 0 then
+        FDTable_Doc.FieldByName('ShipmentId').AsLargeInt := DocShipment;
+      if DocWarehouse > 0 then
+        FDTable_Doc.FieldByName('WarehouseId').AsLargeInt := DocPlace;
+      if DocPlace > 0 then
+        FDTable_Doc.FieldByName('PlaceId').AsLargeInt := DocPlace;
+      FDTable_Doc.Post;
+      Result := FDTable_Doc.FieldByName('DocId').AsLargeInt;
+      if not conn then
+        FDTable_Doc.Close;
+    end;
 end;
 
-function TFDM.insert_doclink(ADocId,AGoodsId: Cardinal; ACount: integer): Cardinal;
-var conn: boolean;
+function TFDM.insert_goods(GoodsArticle: string; AGoods: TGoods): Cardinal;
+var
+  conn: boolean;
+  lwhere, GoodsName: string;
 begin
-Result := 0;
-if not Connected then exit;
-if (ADocId>0) and (AGoodsId>0) and (ACount<>0) then begin
-  conn := FDTable_DocLink.Active;
-  if not conn then FDTable_DocLink.Open;
-  FDTable_DocLink.Insert;
-  FDTable_DocLink.FieldByName('DocId').AsLargeInt := ADocId;
-  FDTable_DocLink.FieldByName('GoodsId').AsLargeInt := AGoodsId;
-  FDTable_DocLink.FieldByName('Count').AsInteger := ACount;
-  FDTable_DocLink.Post;
-  Result := 1;
-  if not conn then FDTable_DocLink.Close;
-end;
+  Result := 0;
+  if not Connected then
+    exit;
+  lwhere := '';
+  if (AGoods.Id > 0) then
+    begin
+      Result := find_value('Goods', 'GoodsId', Format('(GoodsId = %d)', [AGoods.Id]));
+      if Result > 0 then
+        exit;
+    end;
+  GoodsName := copy(AGoods.Name, 1, FDTable_Goods.FieldByName('GoodsName').Size);
+  GoodsArticle := copy(Trim(GoodsArticle), 1, FDTable_Goods.FieldByName('GoodsArticle').Size);
+  lwhere := '';
+  if GoodsArticle <> '' then
+    lwhere := Format('(GoodsArticle = ''%s'')', [GoodsArticle]);
+  if GoodsName <> '' then
+    begin
+      if lwhere = '' then
+        lwhere := Format('(GoodsName = ''%s'')', [GoodsName])
+      else
+        lwhere := Format('%s AND (GoodsName = ''%s'')', [lwhere, GoodsName]);
+    end;
+  if (lwhere <> '') then
+    begin
+      Result := find_value('Goods', 'GoodsId', lwhere);
+      if Result > 0 then
+        exit;
+    end;
+  if (GoodsArticle <> '') or (GoodsName <> '') then
+    begin
+      conn := FDTable_Goods.Active;
+      if not conn then
+        FDTable_Goods.Open;
+      FDTable_Goods.Insert;
+      if GoodsArticle <> '' then
+        FDTable_Goods.FieldByName('GoodsArticle').AsString := GoodsArticle;
+      if GoodsArticle <> '' then
+        FDTable_Goods.FieldByName('GoodsName').AsString := GoodsName;
+      FDTable_Goods.FieldByName('GoodsCost').AsFloat := AGoods.Cost;
+      FDTable_Goods.FieldByName('GoodsSize').AsFloat := AGoods.Size;
+      FDTable_Goods.Post;
+      Result := FDTable_Goods.FieldByName('GoodsId').AsLargeInt;
+      if not conn then
+        FDTable_Goods.Close;
+    end;
 end;
 
-function TFDM.find_leftovers(ADate: TDateTime; AGoods: TGoods): Integer;
+function TFDM.insert_doclink(ADocId, AGoodsId: Cardinal; ACount: integer): Cardinal;
+var
+  conn: boolean;
 begin
-Result := 0;
-if not Connected then exit;
-with FDQuery_findleftovers do begin
-  Close;
-  Params.ParamValues['PLIMIT'] := 1;
-  Params.ParamValues['PGOODS'] := AGoods.Id;
-  Params.ParamValues['PARTICLE'] := AGoods.Article;
-  Params.ParamValues['PNAME'] := AGoods.Name;
-  Params.ParamValues['PDATE'] := round(int(ADate));
-  Params.ParamValues['PWAREHOUSE'] := AGoods.WarehouseId;
-  Params.ParamValues['PSHIPMENT'] := AGoods.ShipmentId;
-  Open;
-  Result := FieldByName('GoodsCount').AsInteger;
-  if Result>0 then begin
-    AGoods.Id := FieldByName('GoodsId').AsLargeInt;
-    AGoods.Dictionary.Shipment.Id := FieldByName('ShipmentId').AsInteger;
-    AGoods.Dictionary.Warehouse.Id := FieldByName('WarehouseId').AsInteger;
-    AGoods.Dictionary.Place.Id := FieldByName('PlaceId').AsInteger;
-    //AGoods.Count := FieldByName('GoodsCount').AsInteger;
-    //AGoods.Cost := FieldByName('GoodsCost').AsFloat;
-    //AGoods.Size := FieldByName('GoodsSize').AsFloat;
-  end;
-  Close;
+  Result := 0;
+  if not Connected then
+    exit;
+  if (ADocId > 0) and (AGoodsId > 0) and (ACount <> 0) then
+    begin
+      conn := FDTable_DocLink.Active;
+      if not conn then
+        FDTable_DocLink.Open;
+      FDTable_DocLink.Insert;
+      FDTable_DocLink.FieldByName('DocId').AsLargeInt := ADocId;
+      FDTable_DocLink.FieldByName('GoodsId').AsLargeInt := AGoodsId;
+      FDTable_DocLink.FieldByName('Count').AsInteger := ACount;
+      FDTable_DocLink.Post;
+      Result := 1;
+      if not conn then
+        FDTable_DocLink.Close;
+    end;
 end;
+
+function TFDM.find_leftovers(ADate: TDateTime; AGoods: TGoods): integer;
+begin
+  Result := 0;
+  if not Connected then
+    exit;
+  with FDQuery_findleftovers do
+    begin
+      Close;
+      Params.ParamValues['PLIMIT'] := 1;
+      Params.ParamValues['PGOODS'] := AGoods.Id;
+      Params.ParamValues['PARTICLE'] := AGoods.Article;
+      Params.ParamValues['PNAME'] := AGoods.Name;
+      Params.ParamValues['PDATE'] := round(int(ADate));
+      Params.ParamValues['PWAREHOUSE'] := AGoods.WarehouseId;
+      Params.ParamValues['PSHIPMENT'] := AGoods.ShipmentId;
+      Open;
+      Result := FieldByName('GoodsCount').AsInteger;
+      if Result > 0 then
+        begin
+          AGoods.Id := FieldByName('GoodsId').AsLargeInt;
+          AGoods.Dictionary.Shipment.Id := FieldByName('ShipmentId').AsInteger;
+          AGoods.Dictionary.Warehouse.Id := FieldByName('WarehouseId').AsInteger;
+          AGoods.Dictionary.Place.Id := FieldByName('PlaceId').AsInteger;
+          // AGoods.Count := FieldByName('GoodsCount').AsInteger;
+          // AGoods.Cost := FieldByName('GoodsCost').AsFloat;
+          // AGoods.Size := FieldByName('GoodsSize').AsFloat;
+        end;
+      Close;
+    end;
 end;
 
 end.

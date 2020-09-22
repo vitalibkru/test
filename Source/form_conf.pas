@@ -2,11 +2,9 @@ unit form_conf;
 
 interface
 
-uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, System.Actions, Vcl.ActnList,
-  System.ImageList, Vcl.ImgList, Vcl.ExtCtrls, Vcl.Buttons, Vcl.StdCtrls,
-  Vcl.CheckLst, Vcl.DbGrids, Grids.Helper, appconfig, deploy;
+uses Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  System.Actions, Vcl.ActnList, System.ImageList, Vcl.ImgList, Vcl.ExtCtrls, Vcl.Buttons, Vcl.StdCtrls, Vcl.CheckLst, Vcl.DbGrids,
+  Grids.Helper, appconfig, deploy;
 
 type
   TCheckListBox = class(Vcl.CheckLst.TCheckListBox)
@@ -64,8 +62,8 @@ type
   private
     FOnParamsApply: TNotifyEvent;
     FConfig: TAppConfig;
-    function do_deploy(Conf: TStrings): integer;
-    function do_deploy_execute: integer;
+    function do_deploy(Conf: TStrings): Integer;
+    function do_deploy_execute: Integer;
     procedure do_conf_apply();
     procedure do_conf_save(FileName: string);
     procedure do_conf_load(FileName: string);
@@ -85,301 +83,337 @@ implementation
 
 const
   cerr_deploy_ok = 'Проверка подключения пройдена успешно';
-  cerr_deploy: array[0..4]of string = (
-    'Не заданы параметры подключения',
-    'Ошибка подключения к серверу',
-    'Не найдена база данных на сервере',
-    'Ошибка подключения к базе данных',
-    'Ошибка создания таблиц'
-  );
+  cerr_deploy: array [0 .. 4] of string = ('Не заданы параметры подключения', 'Ошибка подключения к серверу',
+    'Не найдена база данных на сервере', 'Ошибка подключения к базе данных', 'Ошибка создания таблиц');
 
-//TCheckListBox
+  // TCheckListBox
 
 procedure TCheckListBox.KeyPress(var Key: Char);
 begin
-Abort;
+  Abort;
 end;
 
 procedure TCheckListBox.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-Abort;
+  Abort;
 end;
 
-//Tfrm_conf
+// Tfrm_conf
 
 procedure Tfrm_conf.FormCreate(Sender: TObject);
-var j: integer;
+var
+  j: Integer;
 begin
-FConfig := nil;
-CheckListBox1.Items.Clear;
-for j := 0 to Length(ctables)-1 do begin
-  CheckListBox1.Items.Append(ctables[j]);
-end;
-CheckListBox1.Items.Append('@proc');
-CheckListBox1.Items.Append('@trigger');
-UpdateState;
+  FConfig := nil;
+  CheckListBox1.Items.Clear;
+  for j := 0 to Length(ctables) - 1 do
+    begin
+      CheckListBox1.Items.Append(ctables[j]);
+    end;
+  CheckListBox1.Items.Append('@proc');
+  CheckListBox1.Items.Append('@trigger');
+  UpdateState;
 end;
 
 procedure Tfrm_conf.SetConfig(AConfig: TAppConfig);
 begin
-FConfig := AConfig;
-if Assigned(FConfig) then begin
-  UpdateState;
-end;
+  FConfig := AConfig;
+  if Assigned(FConfig) then
+    begin
+      UpdateState;
+    end;
 end;
 
 procedure Tfrm_conf.UpdateState;
-var conn: boolean;
+var
+  conn: boolean;
 begin
-conn := DeployValidate(FConfig);
-pnl_deploy.Visible := not conn;
-pnl_check.Visible := conn;
-if pnl_check.Visible then ClientHeight := 340
-else ClientHeight := 240;
+  conn := DeployValidate(FConfig);
+  pnl_deploy.Visible := not conn;
+  pnl_check.Visible := conn;
+  if pnl_check.Visible then
+    ClientHeight := 340
+  else
+    ClientHeight := 240;
 end;
 
 procedure Tfrm_conf.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-Action := caFree;
+  Action := caFree;
 end;
 
 procedure Tfrm_conf.act_file_closeExecute(Sender: TObject);
 begin
-Close;
+  Close;
 end;
 
 procedure Tfrm_conf.act_get_dblistExecute(Sender: TObject);
-var st: TStrings;
-  j: integer;
+var
+  st: TStrings;
+  j: Integer;
 begin
-st := TStringList.Create;
-try
-  conf_get(st);
-  with TDeployConnection.Create(Self) do begin
-    if Connect(st) then begin
-      st.Clear;
-      GetCatalogNames('', st);
-      for j := 0 to st.Count-1 do begin
-        st[j] := sname2name(st[j]);
-      end;
-      Edit2.Items.Assign(st);
-    end;
-    Free;
-  end;
-finally
-  st.Free;
-end;
-end;
-
-function Tfrm_conf.MessageBox(const Text: string; Flag: Cardinal): Cardinal;
-begin
-Result := MessageBoxW(0, PWideChar(Text), PWideChar(Caption), Flag);
-end;
-
-procedure Tfrm_conf.conf_get(Values: TStrings);
-begin
-Values.Values['Database\Server'] := Edit1.Text;
-Values.Values['Database\Name'] := Edit2.Text;
-Values.Values['Database\Account'] := Edit3.Text;
-Values.Values['Database\Password'] := Edit4.Text;
-end;
-
-procedure Tfrm_conf.conf_set(Values: TStrings);
-begin
-Edit1.Text := Values.Values['Database\Server'];
-Edit2.Text := Values.Values['Database\Name'];
-Edit3.Text := Values.Values['Database\Account'];
-Edit4.Text := Values.Values['Database\Password'];
-end;
-
-procedure Tfrm_conf.act_conf_applyExecute(Sender: TObject);
-begin
-do_conf_apply();
-Close;
-end;
-
-procedure Tfrm_conf.act_conf_openExecute(Sender: TObject);
-begin
-with OpenDialog1 do begin
-  InitialDir := ExtractFilePath(Paramstr(0));
-  Filename := ExtractFilename(FConfig.DefFilename);
-  if Execute then begin
-    do_conf_load(FileName);
-  end;
-end;
-end;
-
-procedure Tfrm_conf.act_conf_saveExecute(Sender: TObject);
-begin
-with SaveDialog1 do begin
-  InitialDir := ExtractFilePath(Paramstr(0));
-  Filename := ExtractFilename(FConfig.DefFilename);
-  if Execute then begin
-    do_conf_save(FileName);
-  end;
-end;
-end;
-
-procedure Tfrm_conf.act_conf_refreshExecute(Sender: TObject);
-var st: TStrings;
-  j: integer;
-  lname: string;
-begin
-for j := 0 to CheckListBox1.Count-1 do begin
-  CheckListBox1.Checked[j] := false;
-end;
-st := TStringList.Create;
-try
-  conf_get(st);
-  with TDeployConnection.Create(Self) do begin
-    if Connect(st) then begin
-      for j := 0 to CheckListBox1.Count-1 do begin
-        lname := CheckListBox1.Items[j];
-        if lname='@proc' then CheckListBox1.Checked[j] := ExistsObjects(cproc, 'FN')
-        else if lname='@trigger' then CheckListBox1.Checked[j] := ExistsObjects(ctrigger, 'TR')
-        else CheckListBox1.Checked[j] := ExistsTable(lname);
-      end;
-    end;
-    Free;
-  end;
-finally
-  st.Free;
-end;
-end;
-
-procedure Tfrm_conf.act_conf_deployExecute(Sender: TObject);
-begin
-do_deploy_execute();
-UpdateState;
-end;
-
-procedure Tfrm_conf.do_conf_load(FileName: string);
-var st: TStrings;
-begin
-st := TStringList.Create;
-try
-  conf_get(st);
-  with TDeploy.Create(FConfig) do begin
-    conf_load(st);
-    Free;
-  end;
-  conf_set(st);
-finally
-  st.Free;
-end;
-end;
-
-procedure Tfrm_conf.do_conf_save(FileName: string);
-var st: TStrings;
-begin
-st := TStringList.Create;
-try
-  conf_get(st);
-  with TDeploy.Create(FConfig) do begin
-    conf_save(st);
-    Free;
-  end;
-finally
-  st.Free;
-end;
-end;
-
-procedure Tfrm_conf.do_conf_apply();
-var st: TStrings;
-begin
-if Assigned(FOnParamsApply) then begin
   st := TStringList.Create;
   try
     conf_get(st);
-    FOnParamsApply(st);
+    with TDeployConnection.Create(Self) do
+      begin
+        if Connect(st) then
+          begin
+            st.Clear;
+            GetCatalogNames('', st);
+            for j := 0 to st.Count - 1 do
+              begin
+                st[j] := sname2name(st[j]);
+              end;
+            Edit2.Items.Assign(st);
+          end;
+        Free;
+      end;
   finally
     st.Free;
   end;
 end;
+
+function Tfrm_conf.MessageBox(const Text: string; Flag: Cardinal): Cardinal;
+begin
+  Result := MessageBoxW(0, PWideChar(Text), PWideChar(Caption), Flag);
 end;
 
-function Tfrm_conf.do_deploy_execute: integer;
-var st: TStrings;
-  ret: integer;
+procedure Tfrm_conf.conf_get(Values: TStrings);
 begin
-st := TStringList.Create;
-try
-  conf_get(st);
-  ret := do_deploy(st);
-  if ret<Length(cerr_deploy) then begin
-    MessageBox(cerr_deploy[ret], MB_ICONERROR + MB_OK);
-    Result := -1;
-  end
-  else begin
-    MessageBox(cerr_deploy_ok, MB_ICONINFORMATION + MB_OK);
-    do_conf_apply();
-    do_conf_save(FConfig.DefFilename);
-    Result := 1;
-  end;
-finally
-  st.Free;
+  Values.Values['Database\Server'] := Edit1.Text;
+  Values.Values['Database\Name'] := Edit2.Text;
+  Values.Values['Database\Account'] := Edit3.Text;
+  Values.Values['Database\Password'] := Edit4.Text;
 end;
+
+procedure Tfrm_conf.conf_set(Values: TStrings);
+begin
+  Edit1.Text := Values.Values['Database\Server'];
+  Edit2.Text := Values.Values['Database\Name'];
+  Edit3.Text := Values.Values['Database\Account'];
+  Edit4.Text := Values.Values['Database\Password'];
+end;
+
+procedure Tfrm_conf.act_conf_applyExecute(Sender: TObject);
+begin
+  do_conf_apply();
+  Close;
+end;
+
+procedure Tfrm_conf.act_conf_openExecute(Sender: TObject);
+begin
+  with OpenDialog1 do
+    begin
+      InitialDir := ExtractFilePath(Paramstr(0));
+      FileName := ExtractFilename(FConfig.DefFilename);
+      if Execute then
+        begin
+          do_conf_load(FileName);
+        end;
+    end;
+end;
+
+procedure Tfrm_conf.act_conf_saveExecute(Sender: TObject);
+begin
+  with SaveDialog1 do
+    begin
+      InitialDir := ExtractFilePath(Paramstr(0));
+      FileName := ExtractFilename(FConfig.DefFilename);
+      if Execute then
+        begin
+          do_conf_save(FileName);
+        end;
+    end;
+end;
+
+procedure Tfrm_conf.act_conf_refreshExecute(Sender: TObject);
+var
+  st: TStrings;
+  j: Integer;
+  lname: string;
+begin
+  for j := 0 to CheckListBox1.Count - 1 do
+    begin
+      CheckListBox1.Checked[j] := false;
+    end;
+  st := TStringList.Create;
+  try
+    conf_get(st);
+    with TDeployConnection.Create(Self) do
+      begin
+        if Connect(st) then
+          begin
+            for j := 0 to CheckListBox1.Count - 1 do
+              begin
+                lname := CheckListBox1.Items[j];
+                if lname = '@proc' then
+                  CheckListBox1.Checked[j] := ExistsObjects(cproc, 'FN')
+                else
+                  if lname = '@trigger' then
+                    CheckListBox1.Checked[j] := ExistsObjects(ctrigger, 'TR')
+                  else
+                    CheckListBox1.Checked[j] := ExistsTable(lname);
+              end;
+          end;
+        Free;
+      end;
+  finally
+    st.Free;
+  end;
+end;
+
+procedure Tfrm_conf.act_conf_deployExecute(Sender: TObject);
+begin
+  do_deploy_execute();
+  UpdateState;
+end;
+
+procedure Tfrm_conf.do_conf_load(FileName: string);
+var
+  st: TStrings;
+begin
+  st := TStringList.Create;
+  try
+    conf_get(st);
+    with TDeploy.Create(FConfig) do
+      begin
+        conf_load(st);
+        Free;
+      end;
+    conf_set(st);
+  finally
+    st.Free;
+  end;
+end;
+
+procedure Tfrm_conf.do_conf_save(FileName: string);
+var
+  st: TStrings;
+begin
+  st := TStringList.Create;
+  try
+    conf_get(st);
+    with TDeploy.Create(FConfig) do
+      begin
+        conf_save(st);
+        Free;
+      end;
+  finally
+    st.Free;
+  end;
+end;
+
+procedure Tfrm_conf.do_conf_apply();
+var
+  st: TStrings;
+begin
+  if Assigned(FOnParamsApply) then
+    begin
+      st := TStringList.Create;
+      try
+        conf_get(st);
+        FOnParamsApply(st);
+      finally
+        st.Free;
+      end;
+    end;
+end;
+
+function Tfrm_conf.do_deploy_execute: Integer;
+var
+  st: TStrings;
+  ret: Integer;
+begin
+  st := TStringList.Create;
+  try
+    conf_get(st);
+    ret := do_deploy(st);
+    if ret < Length(cerr_deploy) then
+      begin
+        MessageBox(cerr_deploy[ret], MB_ICONERROR + MB_OK);
+        Result := -1;
+      end
+    else begin
+        MessageBox(cerr_deploy_ok, MB_ICONINFORMATION + MB_OK);
+        do_conf_apply();
+        do_conf_save(FConfig.DefFilename);
+        Result := 1;
+      end;
+  finally
+    st.Free;
+  end;
 end;
 
 procedure LoadResource(Resource: TStrings; ResName: string);
-var ResStream: TResourceStream;
+var
+  ResStream: TResourceStream;
 begin
-Resource.Clear;
-ResStream := TResourceStream.Create(Hinstance, ResName, 'CUSTOM');
-try
-  Resource.LoadFromStream(ResStream);
-finally
-  ResStream.Free;
-end;
+  Resource.Clear;
+  ResStream := TResourceStream.Create(Hinstance, ResName, 'CUSTOM');
+  try
+    Resource.LoadFromStream(ResStream);
+  finally
+    ResStream.Free;
+  end;
 end;
 
-function Tfrm_conf.do_deploy(Conf: TStrings): integer;
-var j,dbnew: integer;
+function Tfrm_conf.do_deploy(Conf: TStrings): Integer;
+var
+  j, dbnew: Integer;
   sql: TStrings;
   dbname: string;
   conn: TDeployConnection;
 begin
-Result := 0;
-conn := TDeployConnection.Create(Self);
-sql := TStringList.Create;
-try
-  dbname := Trim(Conf.Values['Database\Name']);
-  if dbname<>'' then begin
-    Inc(Result);
-    if conn.Connect(Conf, 'master') then begin
-      Inc(Result);
-      LoadResource(sql, 'sql_create_db');
-      dbnew := conn.CreateDatabase(dbname, sql);
-      if dbnew>=0 then begin
+  Result := 0;
+  conn := TDeployConnection.Create(Self);
+  sql := TStringList.Create;
+  try
+    dbname := Trim(Conf.Values['Database\Name']);
+    if dbname <> '' then
+      begin
         Inc(Result);
-        if conn.Connect(Conf) then begin
-          Inc(Result);
-          j := 0;
-          while j<Length(ctables) do begin
-            LoadResource(sql, Format('sql_create_%s', [ctables[j]]));
-            sql[0] := Format('USE [%s]', [dbname]);
-            if conn.CreateTable(ctables[j], sql)<0 then begin
-              j := Length(ctables);
-            end;
-            Inc(j);
-          end;
-          if j=Length(ctables) then begin
+        if conn.Connect(Conf, 'master') then
+          begin
             Inc(Result);
-            if dbnew>0 then begin
-              LoadResource(sql, 'sql_create_proc');
-              conn.Execute(sql);
-              LoadResource(sql, 'sql_insert_data');
-              conn.Execute(sql);
-            end;
+            LoadResource(sql, 'sql_create_db');
+            dbnew := conn.CreateDatabase(dbname, sql);
+            if dbnew >= 0 then
+              begin
+                Inc(Result);
+                if conn.Connect(Conf) then
+                  begin
+                    Inc(Result);
+                    j := 0;
+                    while j < Length(ctables) do
+                      begin
+                        LoadResource(sql, Format('sql_create_%s', [ctables[j]]));
+                        sql[0] := Format('USE [%s]', [dbname]);
+                        if conn.CreateTable(ctables[j], sql) < 0 then
+                          begin
+                            j := Length(ctables);
+                          end;
+                        Inc(j);
+                      end;
+                    if j = Length(ctables) then
+                      begin
+                        Inc(Result);
+                        if dbnew > 0 then
+                          begin
+                            LoadResource(sql, 'sql_create_proc');
+                            conn.Execute(sql);
+                            LoadResource(sql, 'sql_insert_data');
+                            conn.Execute(sql);
+                          end;
+                      end;
+                  end;
+              end;
           end;
-        end;
       end;
-    end;
+  finally
+    sql.Free;
+    conn.Free;
   end;
-finally
-  sql.Free;
-  conn.Free;
-end;
 end;
 
 end.

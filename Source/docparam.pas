@@ -4,6 +4,20 @@ interface
 
 uses Classes, SysUtils;
 
+const
+  cname_goods_id = 'GoodsId';
+  cname_goods_name = 'GoodsName';
+  cname_goods_article = 'GoodsArticle';
+  cname_goods_count = 'GoodsCount';
+  cname_goods_cost = 'GoodsCost';
+  cname_goods_size = 'GoodsSize';
+  cname_shipment_id = 'ShipmentId';
+  cname_shipment_name = 'ShipmentName';
+  cname_place_id = 'PlaceId';
+  cname_place_name = 'PlaceName';
+  cname_warehouse_id = 'WarehouseId';
+  cname_warehouse_name = 'WarehouseName';
+
 type
   TStringIndex = class
   private
@@ -42,6 +56,9 @@ type
     function GetShipmentId: Cardinal;
     function GetPlaceId: Cardinal;
     function GetWarehouseId: Cardinal;
+    function GetShipmentName: string;
+    function GetPlaceName: string;
+    function GetWarehouseName: string;
   public
     constructor Create; reintroduce;
     destructor Destroy; override;
@@ -57,106 +74,145 @@ type
     property ShipmentId: Cardinal read GetShipmentId;
     property PlaceId: Cardinal read GetPlaceId;
     property WarehouseId: Cardinal read GetWarehouseId;
+    property ShipmentName: string read GetShipmentName;
+    property PlaceName: string read GetPlaceName;
+    property WarehouseName: string read GetWarehouseName;
   end;
 
 implementation
 
-//TStringIndex
+// TStringIndex
 
 procedure TStringIndex.Clear;
 begin
-FId := 0;
-FName := '';
+  FId := 0;
+  FName := '';
 end;
 
-//TDictionary
+// TDictionary
 
 constructor TDictionary.Create;
 begin
-inherited Create;
-FShipment := TStringIndex.Create;
-FPlace := TStringIndex.Create;
-FWarehouse := TStringIndex.Create;
+  inherited Create;
+  FShipment := TStringIndex.Create;
+  FPlace := TStringIndex.Create;
+  FWarehouse := TStringIndex.Create;
 end;
 
 destructor TDictionary.Destroy;
 begin
-FShipment.Free;
-FPlace.Free;
-FWarehouse.Free;
-inherited Destroy;
+  FShipment.Free;
+  FPlace.Free;
+  FWarehouse.Free;
+  inherited Destroy;
 end;
 
 procedure TDictionary.Clear;
 begin
-inherited Clear;
-FShipment.Clear;
-FPlace.Clear;
-FWarehouse.Clear;
+  inherited Clear;
+  FShipment.Clear;
+  FPlace.Clear;
+  FWarehouse.Clear;
 end;
 
-//TGoods
+// TGoods
 
 constructor TGoods.Create;
 begin
-inherited Create;
-FHeader := TDictionary.Create;
-FDictionary := TDictionary.Create;
+  inherited Create;
+  FHeader := TDictionary.Create;
+  FDictionary := TDictionary.Create;
 end;
 
 destructor TGoods.Destroy;
 begin
-FHeader.Free;
-FDictionary.Free;
-inherited Destroy;
+  FHeader.Free;
+  FDictionary.Free;
+  inherited Destroy;
 end;
 
 procedure TGoods.Clear;
 begin
-inherited Clear;
-FDictionary.Clear;
-FArticle := '';
-FCount := 0;
-FSize := 0;
-FCost := 0;
+  inherited Clear;
+  FDictionary.Clear;
+  FArticle := '';
+  FCount := 0;
+  FSize := 0;
+  FCost := 0;
 end;
 
 function TGoods.GetShipmentId: Cardinal;
 begin
-if FDictionary.Shipment.Id>0 then Result := FDictionary.Shipment.Id
-else Result := FHeader.Shipment.Id;
+  if FDictionary.Shipment.Id > 0 then
+    Result := FDictionary.Shipment.Id
+  else
+    Result := FHeader.Shipment.Id;
 end;
 
 function TGoods.GetPlaceId: Cardinal;
 begin
-if FDictionary.Place.Id>0 then Result := FDictionary.Place.Id
-else Result := FHeader.Place.Id;
+  if FDictionary.Place.Id > 0 then
+    Result := FDictionary.Place.Id
+  else
+    Result := FHeader.Place.Id;
 end;
 
 function TGoods.GetWarehouseId: Cardinal;
 begin
-if FDictionary.Warehouse.Id>0 then Result := FDictionary.Warehouse.Id
-else Result := FHeader.Warehouse.Id;
+  if FDictionary.Warehouse.Id > 0 then
+    Result := FDictionary.Warehouse.Id
+  else
+    Result := FHeader.Warehouse.Id;
+end;
+
+function TGoods.GetShipmentName: string;
+begin
+  if FDictionary.Shipment.Id > 0 then
+    Result := FDictionary.Shipment.Name
+  else
+    Result := FHeader.Shipment.Name;
+end;
+
+function TGoods.GetPlaceName: string;
+begin
+  if FDictionary.Place.Id > 0 then
+    Result := FDictionary.Place.Name
+  else
+    Result := FHeader.Place.Name;
+end;
+
+function TGoods.GetWarehouseName: string;
+begin
+  if FDictionary.Warehouse.Id > 0 then
+    Result := FDictionary.Warehouse.Name
+  else
+    Result := FHeader.Warehouse.Name;
 end;
 
 function float2str(const value: double): string;
-var j: integer;
+var
+  j: integer;
 begin
-Result := FloatToStr(value);
-j := pos(',', Result);
-if j>0 then Result[j] := '.';
+  Result := FloatToStr(value);
+  j := pos(',', Result);
+  if j > 0 then
+    Result[j] := '.';
 end;
 
 procedure TGoods.AssignTo(Destination: TStrings);
 begin
-Destination.Values['ShipmentId'] := ShipmentId.ToString;
-Destination.Values['PlaceId'] := PlaceId.ToString;
-Destination.Values['WarehouseId'] := WarehouseId.ToString;
-Destination.Values['GoodsId'] := FId.ToString;
-Destination.Values['GoodsName'] := FName;
-Destination.Values['GoodsArticle'] := FArticle;
-Destination.Values['GoodsCost'] := float2str(FCost);
-Destination.Values['GoodsSize'] := float2str(FSize);
+  Destination.Values[cname_shipment_id] := ShipmentId.ToString;
+  Destination.Values[cname_shipment_name] := ShipmentName;
+  Destination.Values[cname_place_id] := PlaceId.ToString;
+  Destination.Values[cname_place_name] := PlaceName;
+  Destination.Values[cname_warehouse_id] := WarehouseId.ToString;
+  Destination.Values[cname_warehouse_name] := WarehouseName;
+  Destination.Values[cname_goods_id] := FId.ToString;
+  Destination.Values[cname_goods_name] := FName;
+  Destination.Values[cname_goods_article] := FArticle;
+  Destination.Values[cname_goods_count] := FCount.ToString;
+  Destination.Values[cname_goods_cost] := float2str(FCost);
+  Destination.Values[cname_goods_size] := float2str(FSize);
 end;
 
 end.

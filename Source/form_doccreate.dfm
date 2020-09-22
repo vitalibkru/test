@@ -39,13 +39,14 @@ object frm_doccreate: Tfrm_doccreate
       object Label1: TLabel
         Left = 0
         Top = 242
-        Width = 128
+        Width = 651
         Height = 16
         Align = alBottom
         Caption = '* '#1086#1073#1103#1079#1072#1090#1077#1083#1100#1085#1099#1077' '#1087#1086#1083#1103
         Color = clWindow
         ParentColor = False
         Transparent = True
+        ExplicitWidth = 128
       end
       object fld_grid: TStringGrid
         Left = 0
@@ -399,7 +400,7 @@ object frm_doccreate: Tfrm_doccreate
     Left = 320
     Top = 120
     Bitmap = {
-      494C010105008C00180132003200FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010105008C001C0132003200FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000C80000006400000001002000000000008038
       0100000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
