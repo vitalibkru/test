@@ -145,11 +145,14 @@ begin
 end;
 
 procedure TAppConfig.SetFilename(const AFilename: string);
+var lname: string;
 begin
-  if AnsiLowerCase(FFilename) <> AnsiLowerCase(AFilename) then
+  lname := AnsiLowerCase(Trim(AFilename));
+  if lname<>'' then
+  if lname <> AnsiLowerCase(Filename) then
     begin
       Close;
-      FFilename := AFilename;
+      FFilename := Trim(AFilename);
     end;
 end;
 

@@ -86,6 +86,10 @@ const
   cerr_deploy: array [0 .. 4] of string = ('Не заданы параметры подключения', 'Ошибка подключения к серверу',
     'Не найдена база данных на сервере', 'Ошибка подключения к базе данных', 'Ошибка создания таблиц');
 
+function CtrlPressed: boolean;
+begin
+Result := getasynckeystate(VK_CONTROL)<>0;
+end;
   // TCheckListBox
 
 procedure TCheckListBox.KeyPress(var Key: Char);
@@ -203,6 +207,8 @@ end;
 
 procedure Tfrm_conf.act_conf_openExecute(Sender: TObject);
 begin
+  if not CtrlPressed then do_conf_load('')
+  else
   with OpenDialog1 do
     begin
       InitialDir := ExtractFilePath(Paramstr(0));
@@ -216,6 +222,8 @@ end;
 
 procedure Tfrm_conf.act_conf_saveExecute(Sender: TObject);
 begin
+  if not CtrlPressed then do_conf_save('')
+  else
   with SaveDialog1 do
     begin
       InitialDir := ExtractFilePath(Paramstr(0));
@@ -248,10 +256,10 @@ begin
               begin
                 lname := CheckListBox1.Items[j];
                 if lname = '@proc' then
-                  CheckListBox1.Checked[j] := ExistsObjects(cproc, 'FN')
+                  CheckListBox1.Checked[j] := ExistsObjects('', cproc, 'FN')
                 else
                   if lname = '@trigger' then
-                    CheckListBox1.Checked[j] := ExistsObjects(ctrigger, 'TR')
+                    CheckListBox1.Checked[j] := ExistsObjects('', ctrigger, 'TR')
                   else
                     CheckListBox1.Checked[j] := ExistsTable(lname);
               end;
@@ -278,7 +286,7 @@ begin
     conf_get(st);
     with TDeploy.Create(FConfig) do
       begin
-        conf_load(st);
+        conf_load(FileName, st);
         Free;
       end;
     conf_set(st);
@@ -296,7 +304,7 @@ begin
     conf_get(st);
     with TDeploy.Create(FConfig) do
       begin
-        conf_save(st);
+        conf_save(FileName, st);
         Free;
       end;
   finally
@@ -360,7 +368,7 @@ end;
 
 function Tfrm_conf.do_deploy(Conf: TStrings): Integer;
 var
-  j, dbnew: Integer;
+  j: Integer;
   sql: TStrings;
   dbname: string;
   conn: TDeployConnection;
@@ -377,37 +385,39 @@ begin
           begin
             Inc(Result);
             LoadResource(sql, 'sql_create_db');
-            dbnew := conn.CreateDatabase(dbname, sql);
-            if dbnew >= 0 then
-              begin
+
+            if conn.CreateDatabase(dbname, sql)>0 then begin
+              Inc(Result);
+            end;
+
+            if conn.Connect(Conf, dbname) then begin
+
+            //TABLES
+            for j := 0 to Length(ctables)-1 do
+            if conn.ExistsTable(ctables[j]) then begin
+              Inc(Result);
+            end
+            else begin
+              LoadResource(sql, Format('sql_create_%s', [ctables[j]]));
+              sql[0] := Format('USE [%s]', [dbname]);
+              if conn.CreateTable(ctables[j], sql) >= 0 then begin
                 Inc(Result);
-                if conn.Connect(Conf) then
-                  begin
-                    Inc(Result);
-                    j := 0;
-                    while j < Length(ctables) do
-                      begin
-                        LoadResource(sql, Format('sql_create_%s', [ctables[j]]));
-                        sql[0] := Format('USE [%s]', [dbname]);
-                        if conn.CreateTable(ctables[j], sql) < 0 then
-                          begin
-                            j := Length(ctables);
-                          end;
-                        Inc(j);
-                      end;
-                    if j = Length(ctables) then
-                      begin
-                        Inc(Result);
-                        if dbnew > 0 then
-                          begin
-                            LoadResource(sql, 'sql_create_proc');
-                            conn.Execute(sql);
-                            LoadResource(sql, 'sql_insert_data');
-                            conn.Execute(sql);
-                          end;
-                      end;
-                  end;
               end;
+            end;
+
+            // PROC
+            if (conn.ExistsObjects(dbname, cproc, 'FN')) then begin
+              Inc(Result);
+            end
+            else begin
+              LoadResource(sql, 'sql_create_proc');
+              conn.Execute(sql);
+              LoadResource(sql, 'sql_insert_data');
+              conn.Execute(sql);
+              Inc(Result);
+            end;
+
+          end;
           end;
       end;
   finally

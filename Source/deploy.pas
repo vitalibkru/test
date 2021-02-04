@@ -2,7 +2,7 @@ unit deploy;
 
 interface
 
-uses Classes, System.WideStrUtils, SysUtils, DCPbase64, FireDAC.Comp.Client, appconfig;
+uses Classes, System.WideStrUtils, SysUtils, DCPbase64, FireDAC.Comp.Client, IniFiles, appconfig;
 
 type
   TDeploy = class
@@ -11,8 +11,10 @@ type
   public
     function Decode(const Source: string): string;
     function Encode(const Source: string): string;
-    procedure conf_save(Values: TStrings);
-    procedure conf_load(Values: TStrings);
+    procedure conf_save(Filename: string; Values: TStrings); overload;
+    procedure conf_load(Filename: string; Values: TStrings); overload;
+    procedure conf_save(Values: TStrings); overload;
+    procedure conf_load(Values: TStrings); overload;
     function Validate(Params: TStrings): boolean;
   public
     constructor Create(AConfig: TAppConfig); reintroduce;
@@ -29,7 +31,7 @@ type
     function QueryDatabasePath(): string;
     function CreateTable(TableName: string; SQL: TStrings): integer;
     function ExistsTable(TableName: string): boolean;
-    function ExistsObjects(const Names: array of string; const Ident: string): boolean;
+    function ExistsObjects(const DatabaseName: string; const Names: array of string; const Ident: string): boolean;
     function ExistsDatabase(DatabaseName: string): boolean; overload;
     function ExistsDatabase: boolean; overload;
     function CreateDatabase(DatabaseName: string; SQL: TStrings): integer;
@@ -38,6 +40,7 @@ type
 
 function DeployValidate(AConfig: TAppConfig): boolean;
 function sname2name(const Name: string): string;
+function nameisfile(const Name: string): boolean;
 
 const
   ctables: array [0 .. 5] of string = ('Warehouse', 'Place', 'Shipment', 'Goods', 'Doc', 'DocLink');
@@ -119,6 +122,42 @@ begin
         FConfig.Write('Database', 'Password', Encode(Values.Values['Database\Password']));
         FConfig.Close;
       end;
+end;
+
+procedure TDeploy.conf_save(Filename: string; Values: TStrings);
+var f: TIniFile;
+begin
+  if not nameisfile(Filename) then begin
+    FConfig.Filename := Filename;
+    conf_save(Values);
+  end
+  else begin
+    f := TIniFile.Create(Filename);
+    try
+        f.WriteString('Database', 'Server', Values.Values['Database\Server']);
+        f.WriteString('Database', 'Name', Values.Values['Database\Name']);
+        f.WriteString('Database', 'Account', Values.Values['Database\Account']);
+        f.WriteString('Database', 'Password', Encode(Values.Values['Database\Password']));
+    finally
+        f.Free;
+    end;
+  end;
+end;
+
+procedure TDeploy.conf_load(Filename: string; Values: TStrings);
+begin
+  if not nameisfile(Filename) then begin
+    FConfig.Filename := Filename;
+    conf_load(Values);
+  end
+  else if FileExists(Filename) then
+  with TIniFile.Create(Filename) do begin
+        Values.Values['Database\Server'] := ReadString('Database', 'Server', Values.Values['Database\Server']);
+        Values.Values['Database\Name'] := ReadString('Database', 'Name', Values.Values['Database\Name']);
+        Values.Values['Database\Account'] := ReadString('Database', 'Account', Values.Values['Database\Account']);
+        Values.Values['Database\Password'] := Decode(ReadString('Database', 'Password', Encode(Values.Values['Database\Password'])));
+        Free;
+  end;
 end;
 
 function TDeploy.Validate(Params: TStrings): boolean;
@@ -216,6 +255,15 @@ begin
         end;
     end;
   Result := AnsiLowerCase(Trim(Result));
+end;
+
+function nameisfile(const Name: string): boolean;
+begin
+Result := false;
+if Length(Name)>3 then
+if Name[2]=':' then begin
+  Result := true;
+end;
 end;
 
 function TDeployConnection.Execute(SQL: TStrings): integer;
@@ -325,13 +373,15 @@ begin
   end;
 end;
 
-function TDeployConnection.ExistsObjects(const Names: array of string; const Ident: string): boolean;
+function TDeployConnection.ExistsObjects(const DatabaseName: string; const Names: array of string; const Ident: string): boolean;
 var
   q: TFDQuery;
   j: integer;
-  lname: string;
+  lname,ldb: string;
 begin
   Result := true;
+  ldb := Trim(DatabaseName);
+  if ldb<>'' then ldb := ldb+'.';
   q := TFDQuery.Create(Self);
   try
     q.Connection := Self;
@@ -339,7 +389,7 @@ begin
     while j < Length(Names) do
       begin
         lname := Names[j];
-        q.SQL.Text := Format('select OBJECT_ID (N''dbo.%s'', N''%s'') as n', [lname, Ident]);
+        q.SQL.Text := Format('select OBJECT_ID (N''%sdbo.%s'', N''%s'') as n', [ldb, lname, Ident]);
         q.Open;
         if q.Fields[0].IsNull then
           begin
@@ -425,9 +475,11 @@ begin
     for j := 0 to q.SQL.Count - 1 do
       begin
         s := sqlstr(q.SQL[j]);
-        if s = 'GO' then
-          s := '';
-        q.SQL[j] := WideStringReplace(WideStringReplace(s, '%dbname%', DatabaseName, [rfReplaceAll]), '%dbpath%', dbpath, [rfReplaceAll]);
+        if s = 'GO' then q.SQL[j] := ''
+        else if s<>'' then begin
+          s := WideStringReplace(WideStringReplace(s, '%dbname%', DatabaseName, [rfReplaceAll]), '%dbpath%', dbpath, [rfReplaceAll]);
+          q.SQL[j] := s;
+        end;
       end;
     q.ExecSQL;
     if ExistsDatabase(DatabaseName) then
@@ -472,8 +524,8 @@ begin
       if not ExistsTable(ctables[j]) then
         exit;
     end;
-  if ExistsObjects(cproc, 'FN') then
-    if ExistsObjects(ctrigger, 'TR') then
+  if ExistsObjects('', cproc, 'FN') then
+    if ExistsObjects('', ctrigger, 'TR') then
       begin
         Result := true;
       end;
