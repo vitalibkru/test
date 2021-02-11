@@ -4,6 +4,9 @@ interface
 
 uses SysUtils;
 
+const
+  cname_bool: array[boolean]of string  = ('Нет', 'Да');
+
 function datetime2sql(const Source: TDateTime): string;
 function datetime2str(const Source: TDateTime; Fmt: string): string;
 function str2bool(Source: string; def: boolean): boolean;

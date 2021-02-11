@@ -34,12 +34,14 @@ type
     function Open(const AFilename: string): boolean; overload;
     function Open: boolean; overload;
     procedure Close;
+    procedure Write(const Section, Ident: string; const Value: boolean); overload;
     procedure Write(const Section, Ident: string; const Value: string); overload;
     procedure Write(const Section, Ident: string; const Value: Longint); overload; virtual; abstract;
     procedure Write(const Section, Ident: string; const Value: TDateTime); overload; virtual; abstract;
     procedure Write(const Section, Ident: string; const Value: TForm); overload;
     procedure Write(const Section, Ident: string; const Value: TGridFields); overload;
     procedure Write(const Section, Ident: string; const Value: Vcl.DBGrids.TDBGrid); overload;
+    function Read(const Section, Ident: string; const Def: boolean): boolean; overload;
     function Read(const Section, Ident: string; const Def: string): string; overload;
     function Read(const Section, Ident: string; const Def: Longint): Longint; overload; virtual; abstract;
     function Read(const Section, Ident: string; const Def: TDateTime): TDateTime; overload; virtual; abstract;
@@ -91,6 +93,10 @@ type
   end;
 
 implementation
+
+const
+  cbool: array[boolean]of Longint = (0,1);
+
 
 // TAppParams
 
@@ -221,6 +227,11 @@ end;
 
 // read
 
+function TAppConfig.Read(const Section, Ident: string; const Def: boolean): boolean;
+begin
+  Result := Read(Section, Ident, cbool[Def])=cbool[true];
+end;
+
 function TAppConfig.Read(const Section, Ident: string; const Def: string): string;
 begin
   if Check(Section, Ident) then
@@ -305,6 +316,11 @@ begin
 end;
 
 // write
+
+procedure TAppConfig.Write(const Section, Ident: string; const Value: boolean);
+begin
+  Write(Section, Ident, cbool[Value]);
+end;
 
 procedure TAppConfig.Write(const Section, Ident: string; const Value: string);
 begin
